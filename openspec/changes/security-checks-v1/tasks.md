@@ -40,4 +40,4 @@
 - [x] 5.1 Write `docs/security-checks.md` (author-facing guide: rule table with policy vs detection severity, before/after snippets, reviewer guidance, rollout dates, CLI caveat) and link it from `readme.md`; verify links render on GitHub
 - [x] 5.2 Bump `Version:` in `theme-check.php` to 2.1.0 and add a changelog section to `readme.md` describing the new checks, the `$_SERVER` rule removal and the `findings` JSON key
 - [x] 5.3 (P2) Create `bin/wp-shims.php` (`__`, `_x`, `esc_html`, `esc_html__`, `esc_attr`, `esc_url`, `apply_filters`, `do_action`, `add_action`) and `bin/run-check.php` to run the three checks on a directory without WordPress; verify `php bin/run-check.php tests/fixtures/tc-security-fixture` matches expectations; verify no check file calls WP functions at include time
-- [ ] 5.4 (P2) Add `.github/workflows/checks.yml` running `bin/run-check.php` on PHP 7.4 and 8.2; verify the workflow passes on the fork
+- [x] 5.4 (P2) Add `.github/workflows/checks.yml` running `bin/run-check.php` on PHP 7.4 and 8.2; verify the workflow passes on the fork
