@@ -95,6 +95,11 @@ function tcf_safe_form() {
 	update_option( 'tcf_layout', sanitize_key( $_POST['tcf_layout'] ) );
 }
 
+function tcf_safe_shortcode() {
+	$header = isset( $_GET['custom_header_id'] ) ? absint( wp_unslash( $_GET['custom_header_id'] ) ) : 12;
+	return do_shortcode( '[tcf-header id="' . $header . '"]' ) . do_shortcode( '[tcf-footer id="' . absint( $_GET['footer'] ) . '"]' );
+}
+
 function tcf_safe_commented() {
 	// $wpdb->query( "DELETE FROM wp_posts WHERE ID = $id" );
 	// $x = $_GET['debug'];

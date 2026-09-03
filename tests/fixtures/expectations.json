@@ -72,6 +72,11 @@
             38
         ]
     },
+    "superglobals/shortcode-injection": {
+        "inc/vuln-superglobals.php": [
+            51
+        ]
+    },
     "superglobals/unsanitized": {
         "inc/vuln-superglobals.php": [
             13,
@@ -79,13 +84,15 @@
             22,
             26,
             30,
-            34
+            34,
+            46,
+            51
         ]
     },
     "superglobals/whole-array": {
         "inc/vuln-superglobals.php": [
             42,
-            46
+            55
         ]
     },
     "__zero__": [

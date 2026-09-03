@@ -42,6 +42,15 @@ function tcf_sg_whole_array( $defaults ) {
 	return wp_parse_args( $_POST, $defaults ); // EXPECT: superglobals/whole-array
 }
 
+function tcf_sg_shortcode_via_variable() {
+	$header = isset( $_GET['custom_header_id'] ) ? $_GET['custom_header_id'] : 12; // EXPECT: superglobals/unsanitized
+	return do_shortcode( '[tcf-header id="' . $header . '"]' ); // EXPECT: superglobals/shortcode-injection
+}
+
+function tcf_sg_shortcode_direct() {
+	return do_shortcode( '[tcf-footer id="' . $_GET['footer'] . '"]' ); // EXPECT: superglobals/shortcode-injection, superglobals/unsanitized
+}
+
 function tcf_sg_foreach() {
 	foreach ( $_GET as $key => $value ) { // EXPECT: superglobals/whole-array
 		echo esc_html( $key );

@@ -14,9 +14,10 @@
 class Superglobals_Sanitization_Check implements themecheck {
 
 	const RULES = array(
-		'superglobals/unsanitized' => 'warning',
-		'superglobals/whole-array' => 'warning',
-		'superglobals/extract'     => 'required',
+		'superglobals/unsanitized'         => 'warning',
+		'superglobals/whole-array'         => 'warning',
+		'superglobals/extract'             => 'required',
+		'superglobals/shortcode-injection' => 'required',
 	);
 
 	/**
@@ -26,6 +27,7 @@ class Superglobals_Sanitization_Check implements themecheck {
 		'superglobals/unsanitized' => 'Sanitize or validate each request value where it is read, e.g. sanitize_text_field( wp_unslash( $_POST[\'field\'] ) ), absint( $_GET[\'id\'] ) or an in_array() allow-list; wp_unslash()/trim() alone are not enough.',
 		'superglobals/whole-array' => 'Do not use the whole $_POST/$_GET array; read the specific keys you need and sanitize each one.',
 		'superglobals/extract'     => 'Remove extract() on request data; read and sanitize each key explicitly.',
+		'superglobals/shortcode-injection' => 'Never build a shortcode string from request data: cast the value first (e.g. absint()) or pass it as a validated attribute; unsanitized input lets visitors close the attribute and run any shortcode.',
 	);
 
 	const DOCS   = 'https://developer.wordpress.org/apis/security/sanitizing/';
@@ -78,6 +80,8 @@ class Superglobals_Sanitization_Check implements themecheck {
 			if ( empty( $tokens ) ) {
 				continue;
 			}
+
+			$this->check_shortcode_injection( $tokens, $path );
 
 			$unsanitized = array(); // line => superglobal name
 			$whole       = array();
@@ -178,6 +182,78 @@ class Superglobals_Sanitization_Check implements themecheck {
 		}
 
 		return ! $this->failed;
+	}
+
+	/**
+	 * do_shortcode( ... ) whose argument contains request data (directly or through a variable assigned
+	 * earlier in the same scope) without sanitization: visitors can close the attribute and run any shortcode.
+	 */
+	protected function check_shortcode_injection( $tokens, $path ) {
+		$calls = tc_find_calls( $tokens, array( 'do_shortcode' ) );
+		if ( empty( $calls ) ) {
+			return;
+		}
+		$scopes = tc_token_scopes( $tokens );
+		foreach ( $calls as $call ) {
+			if ( empty( $call['args'] ) ) {
+				continue;
+			}
+			list( $from, $to ) = $call['args'][0];
+			$scope             = tc_scope_at( $scopes, $call['index'] );
+			$source            = $this->tainted_source( $tokens, $from, $to, $scope, 0 );
+			if ( '' === $source ) {
+				continue;
+			}
+			$this->add(
+				'superglobals/shortcode-injection',
+				$path,
+				$call['line'],
+				sprintf(
+					/* translators: 1: file, 2: source variable */
+					__( 'Found <code>do_shortcode()</code> in %1$s built from request data (%2$s) without sanitization. A visitor can close the attribute with <code>"]</code> and execute any registered shortcode with attributes of their choice. Cast or validate the value before using it (e.g. <code>absint( wp_unslash( $_GET[\'id\'] ) )</code>). %3$s', 'theme-check' ),
+					'<strong>' . esc_html( tc_filename( $path ) ) . '</strong>',
+					'<code>' . esc_html( $source ) . '</code>',
+					$this->envato_note( 'data that cannot be validated must be sanitized' )
+				),
+				false
+			);
+		}
+	}
+
+	/**
+	 * Name of the request superglobal (or "$var (from $_GET)") feeding the token range, or '' when clean.
+	 */
+	protected function tainted_source( $tokens, $from, $to, $scope, $depth ) {
+		for ( $i = $from; $i <= $to; $i++ ) {
+			$t = $tokens[ $i ];
+			if ( T_VARIABLE !== $t[0] ) {
+				continue;
+			}
+			if ( in_array( $t[1], $this->superglobals, true ) ) {
+				if ( '$_SERVER' === $t[1] ) {
+					$nx = tc_next_sig( $tokens, $i );
+					$ks = ( $nx >= 0 && null === $tokens[ $nx ][0] && '[' === $tokens[ $nx ][1] ) ? tc_next_sig( $tokens, $nx ) : -1;
+					if ( $ks >= 0 && T_CONSTANT_ENCAPSED_STRING === $tokens[ $ks ][0] && in_array( strtoupper( trim( $tokens[ $ks ][1], '\'"' ) ), $this->safe_server_keys, true ) ) {
+						continue;
+					}
+				}
+				$chain = tc_call_chain( $tokens, $i, 6 );
+				if ( $this->chain_is_safe( $tokens, $i, $chain ) ) {
+					continue;
+				}
+				return $t[1];
+			}
+			if ( $depth < 2 && '$this' !== $t[1] ) {
+				$assign = tc_last_assignment( $tokens, $t[1], $scope['start'], $from );
+				if ( null !== $assign ) {
+					$src = $this->tainted_source( $tokens, $assign['from'], $assign['to'], $scope, $depth + 1 );
+					if ( '' !== $src ) {
+						return $t[1] . ' ← ' . $src;
+					}
+				}
+			}
+		}
+		return '';
 	}
 
 	/**

@@ -5,13 +5,13 @@ Plugin URI: https://github.com/envato/Envato-Theme-Check
 Description: Envato Theme Check is a modified fork of the original Theme Check by Otto42 with additional Themeforest specific WordPress checks.
 Author: Scott Parry
 Author URI: https://envato.com
-Version: 2.3.0
+Version: 2.3.1
 Text Domain: theme-check
 License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 */
 
-define( 'ETC_VERSION', '2.3.0' );
+define( 'ETC_VERSION', '2.3.1' );
 
 require_once __DIR__ . '/includes/class-message-template.php';
 require_once __DIR__ . '/includes/class-queue-cpt.php';

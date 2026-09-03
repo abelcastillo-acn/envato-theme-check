@@ -56,6 +56,9 @@ Findings are grouped by severity with counts, each with a checkbox and collapsib
 
 ## Changelog
 
+### 2.3.1
+- New REQUIRED rule `superglobals/shortcode-injection`: request data reaching `do_shortcode()` (directly or via a variable assigned earlier in the same scope) without sanitization. The remaining unsanitized reads stay WARNING.
+
 ### 2.3.0
 - New: Review Queue (private post type `etc_queue_item`, statuses pending/in review/done, theme mapping, retention cron, purge, uninstall cleanup).
 - New: capture bookmarklet (`tools/bookmarklet/`, built to `dist/`) with fragment hand-off and clipboard fallback; import preview with duplicate marking; payload validation with an Envato host allow-list.

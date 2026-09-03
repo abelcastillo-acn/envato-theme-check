@@ -67,6 +67,19 @@ Policy severity: REQUIRED. Detection severity v1: REQUIRED.
 - **WHEN** a theme calls `extract( $_POST );`
 - **THEN** a `superglobals/extract` REQUIRED finding is emitted and the check result is "fail"
 
+### Requirement: Request data reaching do_shortcode() SHALL be reported as REQUIRED
+The check SHALL emit `superglobals/shortcode-injection` at REQUIRED severity, failing the run, when the argument of `do_shortcode()` contains a request superglobal — directly, or through a variable whose last assignment in the same scope (up to two hops) contains one — that is not sanitized, validated or cast. The finding SHALL name the source variable and SHALL NOT be downgraded inside bundled-framework paths.
+
+Policy severity: REQUIRED. Detection severity v1: REQUIRED (the shape — attacker-controlled text inside a shortcode string — is unambiguous and lets any visitor execute arbitrary registered shortcodes).
+
+#### Scenario: Preview parameter concatenated into a shortcode
+- **WHEN** a template does `$header = isset( $_GET['custom_header_id'] ) ? $_GET['custom_header_id'] : $default;` and later `echo do_shortcode( '[theme-header id="' . $header . '"]' );`
+- **THEN** a `superglobals/shortcode-injection` REQUIRED finding is emitted at the `do_shortcode()` line naming `$header ← $_GET`
+
+#### Scenario: Cast before use
+- **WHEN** the variable is assigned from `absint( wp_unslash( $_GET['custom_header_id'] ) )`
+- **THEN** no `superglobals/shortcode-injection` finding is emitted
+
 ### Requirement: Whole-array use of request superglobals SHALL be reported
 When a request superglobal is used without an index outside a guard context (for example `wp_parse_args( $_POST, $defaults )`, `$data = $_POST;`, `foreach ( $_GET as … )`), the check SHALL emit `superglobals/whole-array` at WARNING severity per file.
 

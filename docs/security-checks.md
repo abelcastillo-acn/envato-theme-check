@@ -107,6 +107,7 @@ Table names taken from `$wpdb` (`$wpdb->prefix`, `$wpdb->posts`, `$table = $wpdb
 | `superglobals/unsanitized` | `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `$_FILES` or a user-controlled `$_SERVER` key is read without a sanitizer/validator/guard/cast in the same statement (one finding per file, up to 8 excerpts) | WARNING |
 | `superglobals/whole-array` | A whole superglobal is used (`wp_parse_args( $_POST, … )`, `$data = $_POST`, `foreach ( $_GET … )`) | WARNING |
 | `superglobals/extract` | `extract( $_POST )` (or `$_GET`/`$_REQUEST`/`$_COOKIE`) | **REQUIRED** |
+| `superglobals/shortcode-injection` | Request data reaches `do_shortcode()` — directly or through a variable assigned earlier in the same scope — without sanitization (e.g. `do_shortcode( '[header id="' . $_GET['id'] . '"]' )`). A visitor can close the attribute with `"]` and run any registered shortcode. | **REQUIRED** |
 
 Safe patterns: `isset()`/`empty()`/`in_array()`/`switch` guards, comparisons with literals, `(int)`/`(bool)`/`(float)` casts, `absint()`, `intval()`, `sanitize_*()`, `wp_kses*()`, `filter_var()`, `esc_url_raw()`, `wp_verify_nonce( $_POST['n'], … )`, `wp_handle_upload()`, WooCommerce `wc_clean()`, `array_map( 'sanitize_text_field', … )`, and any function/method whose name starts with `sanitize`, `validate`, `clean` or `filter`. `wp_unslash()`, `trim()`, `stripslashes()` alone are **not** sanitization.
 
