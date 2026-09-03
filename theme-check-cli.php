@@ -214,6 +214,87 @@ class ThemeCheckCLI extends WP_CLI_Command {
         }
     }
     /**
+    * Manage the local review queue (items imported from the ThemeForest proofing page).
+    *
+    * ## OPTIONS
+    *
+    * <subcommand>
+    * : list | import | purge
+    *
+    * [<file>]
+    * : (import) Path to a captured JSON payload (schema etc-queue/1)
+    *
+    * [--status=<status>]
+    * : (list) etc_pending | etc_in_review | etc_done. (purge) statuses to purge, default etc_done
+    *
+    * [--days=<days>]
+    * : (purge) Delete items last modified more than this many days ago. Default: the retention option
+    *
+    * [--format=<format>]
+    * : (list) table | json | csv. Default: table
+    *
+    * ## EXAMPLES
+    *
+    *     wp theme review queue list --status=etc_pending
+    *     wp theme review queue import capture.json
+    *     wp theme review queue purge --days=30
+    */
+    public function queue( $args = array(), $assoc_args = array() )
+    {
+        $sub = isset( $args[0] ) ? $args[0] : 'list';
+
+        if ( 'import' === $sub )
+        {
+            if ( empty( $args[1] ) || ! file_exists( $args[1] ) ) {
+                WP_CLI::error( 'Usage: wp theme review queue import <file.json>' );
+            }
+            $payload = json_decode( file_get_contents( $args[1] ), true );
+            $result  = ETC_Queue_Importer::import( is_array( $payload ) ? $payload : array() );
+            if ( isset( $result['error'] ) ) {
+                WP_CLI::error( $result['error'] );
+            }
+            foreach ( $result['skipped'] as $s ) {
+                WP_CLI::warning( sprintf( 'Skipped %s: %s', $s['item_id'] ? $s['item_id'] : '#' . $s['index'], $s['reason'] ) );
+            }
+            WP_CLI::success( sprintf( '%d imported, %d updated, %d unchanged, %d skipped.', $result['imported'], $result['updated'], $result['unchanged'], count( $result['skipped'] ) ) );
+            return;
+        }
+
+        if ( 'purge' === $sub )
+        {
+            $days     = isset( $assoc_args['days'] ) ? absint( $assoc_args['days'] ) : ETC_Queue_Store::retention_days();
+            $statuses = isset( $assoc_args['status'] ) ? array_map( 'sanitize_key', explode( ',', $assoc_args['status'] ) ) : array( 'etc_done' );
+            $n        = ETC_Queue_Store::purge_older_than( $days, $statuses );
+            WP_CLI::success( sprintf( '%d item(s) deleted.', $n ) );
+            return;
+        }
+
+        $status = isset( $assoc_args['status'] ) ? sanitize_key( $assoc_args['status'] ) : '';
+        $q      = new WP_Query( array(
+            'post_type'      => ETC_Queue_CPT::POST_TYPE,
+            'post_status'    => $status ? $status : array_keys( ETC_Queue_CPT::statuses() ),
+            'posts_per_page' => -1,
+            'orderby'        => 'date',
+            'order'          => 'DESC',
+        ) );
+        $rows = array();
+        foreach ( $q->posts as $post ) {
+            $it     = ETC_Queue_Store::to_item( $post );
+            $rows[] = array(
+                'post_id'   => $it['post_id'],
+                'item_id'   => $it['item_id'],
+                'title'     => $it['title'],
+                'author'    => $it['author'],
+                'status'    => $it['status'],
+                'theme'     => $it['theme_slug'],
+                'submitted' => $it['submitted'],
+            );
+        }
+        $format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+        WP_CLI\Utils\format_items( $format, $rows, array( 'post_id', 'item_id', 'title', 'author', 'status', 'theme', 'submitted' ) );
+    }
+
+    /**
     * Check for the active theme
     *
     * [--format=<format>]

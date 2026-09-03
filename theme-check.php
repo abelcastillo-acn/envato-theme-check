@@ -5,15 +5,23 @@ Plugin URI: https://github.com/envato/Envato-Theme-Check
 Description: Envato Theme Check is a modified fork of the original Theme Check by Otto42 with additional Themeforest specific WordPress checks.
 Author: Scott Parry
 Author URI: https://envato.com
-Version: 2.2.0
+Version: 2.3.0
 Text Domain: theme-check
 License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 */
 
-define( 'ETC_VERSION', '2.2.0' );
+define( 'ETC_VERSION', '2.3.0' );
 
 require_once __DIR__ . '/includes/class-message-template.php';
+require_once __DIR__ . '/includes/class-queue-cpt.php';
+require_once __DIR__ . '/includes/class-queue-store.php';
+require_once __DIR__ . '/includes/class-queue-importer.php';
+require_once __DIR__ . '/admin/class-queue-admin.php';
+
+ETC_Queue_CPT::register();
+ETC_Queue_Importer::register();
+ETC_Queue_Admin::register();
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	include 'theme-check-cli.php';
@@ -99,6 +107,16 @@ class EnvatoThemeCheck  {
 			 * @param string $theme_slug Theme being checked.
 			 */
 			$author = apply_filters( 'themecheck_author_username', '', $queue_item, sanitize_text_field( wp_unslash( $_POST['themename'] ) ) );
+
+			if ( $queue_item ) {
+				/**
+				 * Fires when a check is started from a review-queue item.
+				 *
+				 * @param int    $queue_item Queue item post id.
+				 * @param string $theme_slug Theme being checked.
+				 */
+				do_action( 'themecheck_run_from_queue', $queue_item, sanitize_text_field( wp_unslash( $_POST['themename'] ) ) );
+			}
 
 			check_main( sanitize_text_field( wp_unslash( $_POST['themename'] ) ), $author );
 		}

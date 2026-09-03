@@ -50,7 +50,17 @@ Findings are grouped by severity with counts, each with a checkbox and collapsib
 
 `themes.php?page=themecheck&themename=<slug>` pre-selects a theme in the form (used by the review-queue hand-off). The old Trac output mode (`TC_TRAC`/`TC_PRE`/`TC_POST`) was removed; it had been non-functional since the output was filtered with `wp_kses`.
 
+## Review Queue (2.3.0)
+
+**Appearance → Review Queue** keeps a local list of the items waiting in the ThemeForest proofing queue. Items are captured with a bookmarklet that runs in your already-authenticated browser tab on `themeforest.net/admin/awesome_proofing` and hands the data to the plugin through a new tab (URL fragment) or, as a fallback, JSON you paste in. The plugin never touches Envato credentials. From the list you map each item to the installed theme and click **Check this theme**: Theme Check opens pre-selected, the item moves to *In review* and the author's username is pre-filled in the message panel. Items marked *Done* are purged after the retention period (default 30 days). See [docs/proofing-import.md](docs/proofing-import.md) for details, limitations and the approvals still pending.
+
 ## Changelog
+
+### 2.3.0
+- New: Review Queue (private post type `etc_queue_item`, statuses pending/in review/done, theme mapping, retention cron, purge, uninstall cleanup).
+- New: capture bookmarklet (`tools/bookmarklet/`, built to `dist/`) with fragment hand-off and clipboard fallback; import preview with duplicate marking; payload validation with an Envato host allow-list.
+- New: `wp theme review queue list|import|purge`; filters `etc_queue_allowed_hosts`, `themecheck_author_username`; action `themecheck_run_from_queue`.
+- Note: the page selectors in the bookmarklet still need to be confirmed against the real proofing page.
 
 ### 2.2.0
 - New: severity-grouped results with counts, per-finding selection, collapsible evidence, accessible text badges.

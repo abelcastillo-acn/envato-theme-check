@@ -1,6 +1,19 @@
-# Importing the ThemeForest proofing queue — feasibility and design notes
+# Importing the ThemeForest proofing queue — feasibility, design and usage
 
-Status: **design / pending approvals**. Specs and tasks live in `openspec/changes/proofing-queue-import/`.
+Status: **v1 implemented (2.3.0), pending: real page selectors and internal approvals**. Specs and tasks live in `openspec/changes/proofing-queue-import/`.
+
+## Using it (v1)
+
+1. In WordPress go to **Appearance → Review Queue**. Drag the **Import ThemeForest queue** button to your bookmarks bar (or copy the code into a new bookmark's URL field).
+2. Open `https://themeforest.net/admin/awesome_proofing` (logged in as usual) and click the bookmark. A new tab opens on the Review Queue page with a preview of the captured items (already-imported ones are marked). Click **Import N items**.
+   - If the tab does not open (pop-up blocked) or the list is huge, the bookmarklet shows an overlay with the JSON: copy it and paste it into **Paste a captured payload instead** on the Review Queue page.
+   - If it reports **No queue items found**, the page markup differs from the selectors in `tools/bookmarklet/queue-scraper.src.js` (`CONFIG.selectors`); save the page HTML and update the selectors, then `node build.js` in `tools/bookmarklet`.
+3. Map each item to the installed theme (auto-guessed from the title), then **Check this theme**: Theme Check opens pre-selected, the item moves to *In review*, and the author username is pre-filled in the message panel.
+4. Mark items *Done*; they are purged after the retention period (default 30 days) or with **Purge done items now**.
+
+WP-CLI: `wp theme review queue list [--status=…] [--format=json]`, `wp theme review queue import capture.json`, `wp theme review queue purge [--days=N]`.
+
+Filters: `etc_queue_allowed_hosts` (URL allow-list for imported links), `themecheck_author_username`, action `themecheck_run_from_queue`.
 
 ## Goal
 
