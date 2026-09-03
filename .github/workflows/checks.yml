@@ -1,0 +1,38 @@
+name: Security checks
+
+on:
+  push:
+    branches: [ master, 'feature/**' ]
+  pull_request:
+
+jobs:
+  fixture:
+    name: Fixture on PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '7.4', '8.2' ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, tokenizer
+          coverage: none
+
+      - name: Lint PHP files
+        run: |
+          set -e
+          for f in $(git ls-files '*.php'); do
+            php -l "$f" > /dev/null
+          done
+          echo "lint ok"
+
+      - name: Run security checks against the fixture theme
+        run: php bin/run-check.php tests/fixtures/tc-security-fixture
+
+      - name: Safe patterns must be clean
+        run: php bin/run-check.php tests/fixtures/tc-security-fixture --only=inc/safe.php --expect-zero

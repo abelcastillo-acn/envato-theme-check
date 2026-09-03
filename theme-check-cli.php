@@ -80,52 +80,28 @@ class ThemeCheckCLI extends WP_CLI_Command {
         $result_json      = array();
 
         $theme = $this->fetcher->get_check( $args[0] );
-        $files = $theme->get_files( null, -1 );
-        $css   = $php = $other = array();
 
-        foreach( $files as $key => $filename )
-        {
-            if ( strpos( $filename, 'tgm-plugin-activation' ) === false && strpos( $filename, 'class-merlin' ) === false ) {
-                if ( substr( $filename, -4 ) == '.php' )
-                {
-                    $php[ $filename ] = php_strip_whitespace( $filename );
-                }
-                else if ( substr( $filename, -4 ) == '.css' )
-                {
-                    $css[ $filename ] = file_get_contents( $filename );
-                }
-                else
-                {
-                    $other[ $filename ] = ( ! is_dir( $filename ) ) ? file_get_contents( $filename ) : '';
-                }
-            }
-        }
+        // Same file walk as the admin page: comment-stripped PHP with preserved line numbers,
+        // parent theme files included, tgm/merlin excluded.
+        $success  = run_themechecks_against_theme( $theme, $theme->get_stylesheet() );
+        $findings = tc_collect_results();
 
-        // Pass theme context so checks can access slug and theme data
-        $context = array(
-            'theme' => $theme,
-            'slug' => $theme->get_stylesheet()
-        );
-
-        $success = run_themechecks($php, $css, $other, $context);
-        $errors  = array();
-
-        foreach ( $themechecks as $check )
-        {
-            if ( $check instanceof themecheck )
-            {
-                $error = $check->getError();
-
-                if ( ! empty( $error ) )
-                {
-                    $errors = array_merge( $error, $errors );
-                }
-            }
-        }
-
-        $errors = array_unique( $errors );
+        $errors = array_unique( array_column( $findings, 'html' ) );
         $errors = array_map( 'strip_tags', $errors );
         rsort( $errors );
+
+        // Structured findings for automation consumers.
+        $findings_json = array();
+        foreach ( $findings as $f )
+        {
+            $findings_json[] = array(
+                'severity' => strtoupper( $f['severity'] ),
+                'check'    => $f['check'],
+                'message'  => $f['message'],
+                'file'     => $f['file'],
+                'line'     => $f['line'],
+            );
+        }
 
         // assume to pass unless we see a required or warning message.
         $pass = true;
@@ -231,7 +207,8 @@ class ThemeCheckCLI extends WP_CLI_Command {
                 'required'    => $required_json,
                 'recommended' => $recommended_json,
                 'warnings'    => $warnings_json,
-                'errors'      => $errors_json
+                'errors'      => $errors_json,
+                'findings'    => $findings_json,
             );
             echo htmlspecialchars_decode( json_encode( $output, JSON_UNESCAPED_SLASHES ) );
         }
@@ -246,13 +223,7 @@ class ThemeCheckCLI extends WP_CLI_Command {
     public function active( $args = array(), $assoc_args = array() )
     {
         $active_theme = wp_get_theme();
-        $theme_folder_name = $active_theme->template;
-        // Next four lines set up $themename and $data for wp cli version, as check_main is never run
-        global $themename, $data;
-        $themename = $theme_folder_name;
-        $theme = get_theme_root( $theme_folder_name ) . "/$theme_folder_name";
-        $data = tc_get_theme_data( $theme . '/style.css' );
-        $this->check( array($theme_folder_name), $assoc_args);
+        $this->check( array( $active_theme->get_stylesheet() ), $assoc_args );
     }
 }
 

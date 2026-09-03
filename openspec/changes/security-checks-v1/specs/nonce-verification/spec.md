@@ -51,6 +51,10 @@ Policy severity: REQUIRED (Envato: "User capabilities must be checked … Only u
 - **WHEN** the handler body contains `if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error(); }`
 - **THEN** no `nonce/capability-missing` finding is emitted
 
+#### Scenario: Capability checked before registration
+- **WHEN** the `add_action( 'wp_ajax_…', … )` call itself is inside a function that calls `current_user_can()` (or another capability function) before registering the handler, so the hook is never registered for unprivileged users
+- **THEN** no `nonce/capability-missing` finding is emitted for that handler
+
 ### Requirement: Form handlers outside AJAX hooks SHALL verify a nonce before writing
 For any function body (or file scope) that reads `$_POST`, `$_REQUEST` or `$_GET` and performs a state-changing operation, and that was not already reported as an AJAX/admin-post handler, the check SHALL emit `nonce/form-handler` when no nonce verification call is present in the same body.
 

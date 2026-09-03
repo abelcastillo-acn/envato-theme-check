@@ -160,6 +160,19 @@ Findings inside bundled frameworks are downgraded to INFO (except `sql/raw-drive
 - **False-positive risk:** medium-high per line (values passed to APIs that sanitize internally), low per file thanks to aggregation.
 - **Reviewer guidance:** advisory. Skim the excerpts: a raw read that flows into SQL, `include`, `header()`, `wp_redirect()` or HTML output is a reject; a raw read compared to a literal or passed into a casting WP API is fine.
 
+## Calibration results (2026-09-03, Local site, PHP 8.2.29, WP 7.1)
+
+| Theme | PHP files | Security findings | Notes |
+|---|---|---|---|
+| `tc-security-fixture` | 8 | 27 (33 EXPECT markers all met; `inc/safe.php` = 0) | 0.31 s |
+| `timbero` (WooCommerce, 406 files) | 406 | **0 REQUIRED, 4 WARNING** | `nonce/form-handler` `trait-import-content.php:1225` (private helper reads `$_POST`; nonce verified in the dispatcher `ajax_content()` — accepted manual-review WARNING); `sql/variable-arg` `trait-import-content.php:1292` (SQL dump import — expected); `superglobals/unsanitized` `class-ajax-add-to-cart.php:221` (`wp_unslash( $_POST['products'] )` → `json_decode` — true positive, WPCS flags it too); `superglobals/whole-array` `class-ajax-add-to-cart.php:110` (`wp_unslash( $_POST )` then per-key sanitising — manual review). |
+| `timbero-child` | 406 (parent included) | same 4 WARNING | Run result FAIL comes from a pre-existing `TextDomain_Check` REQUIRED, not from the security checks. |
+| `twentytwentyfive` | 99 | 0 | |
+
+- Runtime overhead of the three checks on timbero: not measurable (8.18 s with vs 8.65 s without, i.e. within noise); peak memory 58–64 MB. The regex pre-filter means only files with the relevant patterns are tokenised.
+- One detector refinement came out of calibration: a capability check guarding the `add_action()` registration (timbero's setup wizard registers `wp_ajax_theme_setup_content` inside `if ( current_user_can( 'manage_options' ) )`) now counts as a capability check for the handler (spec scenario "Capability checked before registration"). Before the refinement timbero reported one false `nonce/capability-missing`.
+- All security finding HTML passes the admin `wp_kses` allowlist unchanged (verified programmatically), and promoting `nonce/ajax-missing` to `required` through `tc_rule_severity` makes the fixture run fail as designed.
+
 ## Rollout
 
 | Phase | When | Action |

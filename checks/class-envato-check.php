@@ -54,7 +54,6 @@ class Themeforest implements themecheck {
             '/[^a-z0-9](?<!_)force_balance_tags\s?\(\$/'      => esc_html__( 'Possible data validation issues found. force_balance_tags() does not escape data', 'theme-check' ),
             '/[^a-z0-9](?<!_)force_balance_tags\s?\( \$/'     => esc_html__( 'Possible data validation issues found. force_balance_tags() does not escape data', 'theme-check' ),
             '/[^a-zA-Z0-9_\x7f-\xff](echo|print)\s*\(?\s*\$/' => esc_html__( 'Possible data validation issues found. All dynamic data must be correctly escaped for the context where it is rendered', 'theme-check' ),
-            '/[^a-z0-9](?<!_)\$_SERVER\s?/'                   => esc_html__( 'PHP Global Variable found. Ensure the context is safe and reliable', 'theme-check' ),
             '/remove_filter\s?\(/'                            => esc_html__( 'Themes should not remove core filters. Ensure this is a valid use case', 'theme-check' ),
             '/add_meta_boxes/'                                => esc_html__( 'Custom meta box functions are allowed for design only. Ensure this is a valid use case', 'theme-check' ),
             '/add_meta_box/'                                  => esc_html__( 'Custom meta box functions are allowed for design only. Ensure this is a valid use case', 'theme-check' ),

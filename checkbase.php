@@ -20,6 +20,13 @@ $checkcount = 0;
 global $theme_check_current_theme;
 $theme_check_current_theme = false;
 
+// context of the current/last run ( 'theme' => WP_Theme, 'slug' => string ). Internal use only.
+global $theme_check_current_context;
+$theme_check_current_context = array();
+
+// shared token helpers used by the security checks.
+require_once __DIR__ . '/tc-tokens.php';
+
 // interface that all checks should implement.
 interface themecheck {
 
@@ -99,10 +106,11 @@ function run_themechecks_against_theme( $theme, $theme_slug ) {
  * @return bool
  */
 function run_themechecks( $php, $css, $other, $context = array() ) {
-	global $themechecks, $theme_check_current_theme;
+	global $themechecks, $theme_check_current_theme, $theme_check_current_context;
 
 	// Provide context to some functions that need to know the current theme, but aren't passed the object.
-	$theme_check_current_theme = isset( $context['theme'] ) ? $context['theme'] : false;
+	$theme_check_current_theme   = isset( $context['theme'] ) ? $context['theme'] : false;
+	$theme_check_current_context = (array) $context;
 
 	$pass = true;
 
@@ -123,19 +131,146 @@ function run_themechecks( $php, $css, $other, $context = array() ) {
 	return $pass;
 }
 
-function display_themechecks() {
-	$results = '';
-	global $themechecks;
-	$errors = array();
-	foreach ( $themechecks as $check ) {
-		if ( $check instanceof themecheck ) {
-			$error = $check->getError();
-			$error = (array) $error;
-			if ( ! empty( $error ) ) {
-				$errors = array_unique( array_merge( $error, $errors ) );
+/**
+ * Build one structured finding (and its legacy HTML string).
+ *
+ * @param string $severity required|warning|recommended|info.
+ * @param string $check_id Rule id, e.g. 'sql/concat'.
+ * @param string $message  HTML fragment (only li/span/strong/code/pre/a[href] survive wp_kses).
+ * @param string $file     Absolute path of the offending file ('' if n/a).
+ * @param int    $line     Line number (0 if n/a).
+ * @param string $evidence Pre-rendered <pre class='tc-grep'> block(s); built from $file/$line when empty.
+ * @param string $docs_url Optional "Learn more" URL.
+ * @return array
+ */
+function tc_error( $severity, $check_id, $message, $file = '', $line = 0, $evidence = '', $docs_url = '' ) {
+	$labels = array(
+		'required'    => __( 'REQUIRED', 'theme-check' ),
+		'warning'     => __( 'WARNING', 'theme-check' ),
+		'recommended' => __( 'RECOMMENDED', 'theme-check' ),
+		'info'        => __( 'INFO', 'theme-check' ),
+	);
+	$severity = strtolower( (string) $severity );
+	if ( ! isset( $labels[ $severity ] ) ) {
+		$severity = 'info';
+	}
+	if ( '' === $evidence && '' !== $file && $line > 0 && function_exists( 'tc_excerpt' ) ) {
+		$evidence = tc_excerpt( $file, $line );
+	}
+	$html = '<span class="tc-lead tc-' . $severity . '">' . $labels[ $severity ] . '</span>: ' . $message;
+	if ( '' !== $docs_url ) {
+		$html .= ' <a href="' . esc_url( $docs_url ) . '">' . __( 'Learn more', 'theme-check' ) . '</a>';
+	}
+	if ( '' !== $evidence ) {
+		$html .= ' ' . $evidence;
+	}
+	return array(
+		'severity' => $severity,
+		'check'    => (string) $check_id,
+		'message'  => tc_finding_plain_text( $message ),
+		'file'     => ( '' !== $file ) ? tc_filename( $file ) : '',
+		'line'     => (int) $line,
+		'evidence' => $evidence,
+		'html'     => $html,
+	);
+}
+
+/**
+ * Plain-text version of an HTML finding fragment.
+ */
+function tc_finding_plain_text( $html ) {
+	$text = preg_replace( '#<br\s*/?>|</pre>|</li>#i', "\n", (string) $html );
+	$text = wp_strip_all_tags( $text );
+	$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$text = preg_replace( '/[ \t]+/', ' ', $text );
+	$text = preg_replace( "/\n{3,}/", "\n\n", $text );
+	return trim( $text );
+}
+
+/**
+ * Wrap a legacy HTML finding string into the structured shape.
+ */
+function tc_result_from_legacy_html( $html, $check_class ) {
+	$html     = (string) $html;
+	$severity = 'info';
+	if ( preg_match( '#<span class="tc-lead[^"]*">\s*(REQUIRED|WARNING|RECOMMENDED|INFO)\s*</span>#i', $html, $m ) ) {
+		$severity = strtolower( $m[1] );
+	} elseif ( preg_match( '/tc-(required|warning|recommended|info)/', $html, $m ) ) {
+		$severity = $m[1];
+	}
+
+	$evidence_html = '';
+	$lines         = array();
+	if ( preg_match_all( "#<pre class=['\"]tc-grep['\"]>(.*?)</pre>#s", $html, $pm, PREG_SET_ORDER ) ) {
+		foreach ( $pm as $p ) {
+			$evidence_html .= $p[0];
+			$plain          = html_entity_decode( wp_strip_all_tags( $p[1] ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			if ( preg_match( '/^\s*Line (\d+):\s?(.*)$/s', $plain, $lm ) ) {
+				$lines[] = array( (int) $lm[1], trim( $lm[2] ) );
 			}
 		}
 	}
+
+	$file = '';
+	if ( preg_match_all( '#<strong>(.*?)</strong>#s', $html, $sm ) ) {
+		foreach ( $sm[1] as $candidate ) {
+			$candidate = trim( wp_strip_all_tags( $candidate ) );
+			if ( preg_match( '#^[\w\-. /\\\\]+\.[a-z0-9]{2,5}$#i', $candidate ) ) {
+				$file = $candidate;
+				break;
+			}
+		}
+	}
+
+	$body = preg_replace( '#<span class="tc-lead[^"]*">.*?</span>:?\s*#is', '', $html, 1 );
+	$body = preg_replace( "#<pre class=['\"]tc-grep['\"]>.*?</pre>#s", '', $body );
+
+	return array(
+		'severity' => $severity,
+		'check'    => (string) $check_class,
+		'message'  => tc_finding_plain_text( $body ),
+		'file'     => $file,
+		'line'     => ! empty( $lines ) ? $lines[0][0] : 0,
+		'evidence' => $evidence_html,
+		'html'     => $html,
+	);
+}
+
+/**
+ * Collect structured findings from all checks (structured when available, legacy HTML otherwise).
+ *
+ * @return array List of findings; see tc_error() for the shape.
+ */
+function tc_collect_results() {
+	global $themechecks, $theme_check_current_context;
+	$results = array();
+	$seen    = array();
+	foreach ( $themechecks as $check ) {
+		if ( ! ( $check instanceof themecheck ) ) {
+			continue;
+		}
+		if ( is_callable( array( $check, 'getStructuredErrors' ) ) ) {
+			$items = (array) $check->getStructuredErrors();
+		} else {
+			$items = array();
+			foreach ( (array) $check->getError() as $html ) {
+				$items[] = tc_result_from_legacy_html( $html, get_class( $check ) );
+			}
+		}
+		foreach ( $items as $item ) {
+			if ( ! isset( $item['html'] ) || isset( $seen[ $item['html'] ] ) ) {
+				continue;
+			}
+			$seen[ $item['html'] ] = true;
+			$results[]             = $item;
+		}
+	}
+	return apply_filters( 'themecheck_findings', $results, $theme_check_current_context );
+}
+
+function display_themechecks() {
+	$results = '';
+	$errors  = array_column( tc_collect_results(), 'html' );
 	if ( ! empty( $errors ) ) {
 		rsort( $errors );
 		foreach ( $errors as $e ) {

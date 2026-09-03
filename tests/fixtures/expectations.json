@@ -1,0 +1,94 @@
+{
+    "nonce/ajax-missing": {
+        "inc/vuln-nonce.php": [
+            54
+        ]
+    },
+    "nonce/capability-missing": {
+        "inc/vuln-nonce.php": [
+            54
+        ]
+    },
+    "nonce/delegated": {
+        "inc/vuln-nonce.php": [
+            59
+        ]
+    },
+    "nonce/form-handler": {
+        "inc/vuln-nonce.php": [
+            34
+        ]
+    },
+    "nonce/nopriv-state-change": {
+        "inc/vuln-nonce.php": [
+            27
+        ]
+    },
+    "nonce/unresolved": {
+        "inc/vuln-nonce.php": []
+    },
+    "sql/concat": {
+        "inc/vuln-sql.php": [
+            24
+        ]
+    },
+    "sql/esc-sql-concat": {
+        "inc/vuln-sql.php": [
+            37
+        ]
+    },
+    "sql/prepare-interpolated": {
+        "inc/vuln-sql.php": [
+            60
+        ]
+    },
+    "sql/prepare-no-placeholders": {
+        "inc/vuln-sql.php": [
+            55
+        ]
+    },
+    "sql/prepare-variable-format": {
+        "inc/vuln-sql.php": [
+            66
+        ]
+    },
+    "sql/raw-driver": {
+        "inc/vuln-sql.php": [
+            75
+        ]
+    },
+    "sql/variable-arg": {
+        "inc/vuln-sql.php": [
+            49
+        ]
+    },
+    "sql/variable-arg-concat": {
+        "inc/vuln-sql.php": [
+            43
+        ]
+    },
+    "superglobals/extract": {
+        "inc/vuln-superglobals.php": [
+            38
+        ]
+    },
+    "superglobals/unsanitized": {
+        "inc/vuln-superglobals.php": [
+            13,
+            18,
+            22,
+            26,
+            30,
+            34
+        ]
+    },
+    "superglobals/whole-array": {
+        "inc/vuln-superglobals.php": [
+            42,
+            46
+        ]
+    },
+    "__zero__": [
+        "inc/safe.php"
+    ]
+}
