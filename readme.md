@@ -44,7 +44,21 @@ wp theme review active [--format=true]
 - With WordPress (Local site shell): `wp eval-file tests/run-fixture.php tc-security-fixture` and `wp eval-file tests/census.php <theme-slug>` (false-positive census on a real theme). `tests/sync-to-local.ps1` copies the plugin and fixture into the Local site.
 - Without WordPress: `php bin/run-check.php tests/fixtures/tc-security-fixture` (uses `bin/wp-shims.php`); `--only=inc/safe.php --expect-zero` asserts the safe file is clean. GitHub Actions runs both on PHP 7.4 and 8.2 (`.github/workflows/checks.yml`).
 
+## Results page and message to the author (2.2.0)
+
+Findings are grouped by severity with counts, each with a checkbox and collapsible line excerpts. The **Message to author** panel turns the selected findings into a plain-text message (the ThemeForest review tool accepts plain text only): fill in the author's ThemeForest username, add reviewer notes, edit the preview if needed and click **Copy to clipboard**. The message template (greeting, intro, notes heading, footer, default included severities, evidence lines per finding) is editable from the same panel and stored site-wide; placeholders: `{author}`, `{theme_name}`, `{theme_version}`, `{date}`, `{required_count}`, `{warning_count}`, `{recommended_count}`, `{info_count}`, `{selected_count}`, `{reviewer_notes}`, `{findings}`.
+
+`themes.php?page=themecheck&themename=<slug>` pre-selects a theme in the form (used by the review-queue hand-off). The old Trac output mode (`TC_TRAC`/`TC_PRE`/`TC_POST`) was removed; it had been non-functional since the output was filtered with `wp_kses`.
+
 ## Changelog
+
+### 2.2.0
+- New: severity-grouped results with counts, per-finding selection, collapsible evidence, accessible text badges.
+- New: "Message to author" panel — plain-text message from the selected findings, reviewer notes, ThemeForest author username, copy to clipboard (with fallback for `http://` local sites), editable persisted template (`includes/class-message-template.php`).
+- New: `tc_collect_findings()`, `includes/results-renderer.php`, `assets/theme-check.js`; findings JSON block on the results page; `themecheck_author_username` filter.
+- Changed: assets enqueued via `admin_enqueue_scripts` with the `envato-theme-check` handle; `?themename=` pre-selection.
+- Fixed: two REQUIRED findings in the Envato check rendered with the WARNING colour.
+- Removed: Trac output mode (`tc_trac()` is now a no-op).
 
 ### 2.1.0
 - New: `Nonce_Check`, `SQL_Prepare_Check` and `Superglobals_Sanitization_Check` (see docs/security-checks.md) with per-rule severities, vendor-path downgrade to INFO and the `tc_rule_severity` filter.

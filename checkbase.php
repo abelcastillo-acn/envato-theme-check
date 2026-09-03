@@ -179,7 +179,7 @@ function tc_error( $severity, $check_id, $message, $file = '', $line = 0, $evide
  * Plain-text version of an HTML finding fragment.
  */
 function tc_finding_plain_text( $html ) {
-	$text = preg_replace( '#<br\s*/?>|</pre>|</li>#i', "\n", (string) $html );
+	$text = preg_replace( '#<br\s*/?>|<pre[^>]*>|</pre>|<li[^>]*>|</li>#i', "\n", (string) $html );
 	$text = wp_strip_all_tags( $text );
 	$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 	$text = preg_replace( '/[ \t]+/', ' ', $text );
@@ -268,31 +268,75 @@ function tc_collect_results() {
 	return apply_filters( 'themecheck_findings', $results, $theme_check_current_context );
 }
 
+/**
+ * Findings ready for the results UI: structured results plus a stable id, label, plain text and parsed
+ * evidence lines, ordered REQUIRED > WARNING > RECOMMENDED > INFO, with INFO suppressed when requested.
+ *
+ * @return array
+ */
+function tc_collect_findings() {
+	$rank   = array( 'required' => 0, 'warning' => 1, 'recommended' => 2, 'info' => 3 );
+	$labels = array(
+		'required'    => __( 'REQUIRED', 'theme-check' ),
+		'warning'     => __( 'WARNING', 'theme-check' ),
+		'recommended' => __( 'RECOMMENDED', 'theme-check' ),
+		'info'        => __( 'INFO', 'theme-check' ),
+	);
+	$out  = array();
+	$seen = array();
+	foreach ( tc_collect_results() as $r ) {
+		$sev = isset( $rank[ $r['severity'] ] ) ? $r['severity'] : 'info';
+		if ( isset( $_POST['s_info'] ) && 'info' === $sev ) {
+			continue;
+		}
+		$lines = array();
+		if ( ! empty( $r['evidence'] ) && preg_match_all( "#<pre class=['\"]tc-grep['\"]>(.*?)</pre>#s", $r['evidence'], $pm ) ) {
+			foreach ( $pm[1] as $p ) {
+				$plain = html_entity_decode( wp_strip_all_tags( $p ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				if ( preg_match( '/^\s*Line (\d+):\s?(.*)$/s', $plain, $lm ) ) {
+					$lines[] = array( 'line' => (int) $lm[1], 'text' => trim( $lm[2] ) );
+				}
+			}
+		}
+		$text = isset( $r['message'] ) && '' !== $r['message'] ? $r['message'] : tc_finding_plain_text( $r['html'] );
+		$key  = md5( $r['check'] . '|' . $sev . '|' . $text . '|' . $r['file'] );
+		if ( isset( $seen[ $key ] ) ) {
+			continue;
+		}
+		$seen[ $key ] = true;
+
+		$r['severity'] = $sev;
+		$r['label']    = $labels[ $sev ];
+		$r['text']     = $text;
+		$r['lines']    = $lines;
+		$r['id']       = 'tc-' . substr( md5( $r['check'] . '|' . $r['html'] ), 0, 10 );
+		$out[]         = $r;
+	}
+	usort(
+		$out,
+		function ( $a, $b ) use ( $rank ) {
+			$d = $rank[ $a['severity'] ] - $rank[ $b['severity'] ];
+			if ( 0 !== $d ) {
+				return $d;
+			}
+			$d = strcmp( $a['check'], $b['check'] );
+			return ( 0 !== $d ) ? $d : strcmp( $a['text'], $b['text'] );
+		}
+	);
+	return $out;
+}
+
+/**
+ * Legacy flat list renderer. Kept for backwards compatibility; the admin page now uses tc_render_results_page().
+ */
 function display_themechecks() {
 	$results = '';
 	$errors  = array_column( tc_collect_results(), 'html' );
 	if ( ! empty( $errors ) ) {
 		rsort( $errors );
 		foreach ( $errors as $e ) {
-
-			if ( defined( 'TC_TRAC' ) ) {
-				$results .= ( isset( $_POST['s_info'] ) && preg_match( '/INFO/', $e ) ) ? '' : '* ' . tc_trac( $e ) . "\r\n";
-			} else {
-				$results .= ( isset( $_POST['s_info'] ) && preg_match( '/INFO/', $e ) ) ? '' : '<li>' . tc_trac( $e ) . '</li>';
-			}
+			$results .= ( isset( $_POST['s_info'] ) && preg_match( '/INFO/', $e ) ) ? '' : '<li>' . $e . '</li>';
 		}
-	}
-
-	if ( defined( 'TC_TRAC' ) ) {
-
-		if ( defined( 'TC_PRE' ) ) {
-			$results = TC_PRE . $results;
-		}
-		$results = '<textarea cols=140 rows=20>' . wp_strip_all_tags( $results );
-		if ( defined( 'TC_POST' ) ) {
-			$results = $results . TC_POST;
-		}
-		$results .= '</textarea>';
 	}
 	return $results;
 }
@@ -399,17 +443,11 @@ function _get_filename_from_current_theme( $file ) {
 	return array_search( $file, $theme_files, true );
 }
 
+/**
+ * Deprecated: the Trac output mode was removed in 2.2.0 (superseded by the plain-text author message).
+ * Kept as a pass-through for one release in case anything external calls it.
+ */
 function tc_trac( $e ) {
-	$trac_left  = array( '<strong>', '</strong>' );
-	$trac_right = array( "'''", "'''" );
-	$html_link  = '/<a\s?href\s?=\s?[\'|"]([^"|\']*)[\'|"]>([^<]*)<\/a>/i';
-	$html_new   = '[$1 $2]';
-	if ( defined( 'TC_TRAC' ) ) {
-		$e = preg_replace( $html_link, $html_new, $e );
-		$e = str_replace( $trac_left, $trac_right, $e );
-		$e = preg_replace( '/<pre.*?>/', "\r\n{{{\r\n", $e );
-		$e = str_replace( '</pre>', "\r\n}}}\r\n", $e );
-	}
 	return $e;
 }
 

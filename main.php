@@ -10,7 +10,7 @@
  *
  * @param string $theme_slug theme slug of the theme to be tested.
  */
-function check_main( $theme_slug ) {
+function check_main( $theme_slug, $author = '' ) {
 	global $checkcount;
 
 	/**
@@ -94,7 +94,7 @@ function check_main( $theme_slug ) {
 		'<strong>' . esc_html( $theme['Title'] ) . '</strong>'
 	) . '</p>';
 
-	$results = display_themechecks();
+	$findings = tc_collect_findings();
 
 	if ( ! $success ) {
 		echo '<h2>' . sprintf( __( 'One or more errors were found for %1$s.', 'theme-check' ), esc_html( $theme['Title'] ) ) . '</h2>';
@@ -120,24 +120,11 @@ function check_main( $theme_slug ) {
 		echo '</div>';
 	}
 
-	echo '<div class="tc-box">';
-	echo '<ul class="tc-result">';
-	echo wp_kses(
-		$results,
-		array(
-			'li'     => array(),
-			'span'   => array(
-				'class' => array(),
-			),
-			'strong' => array(),
-			'code'   => array(),
-			'pre'    => array(),
-			'a'      => array(
-				'href' => array(),
-			),
-		)
-	);
-	echo '</ul></div>';
+	if ( ! empty( $findings ) ) {
+		echo '<div class="tc-box">';
+		tc_render_results_page( $findings, $theme, $author );
+		echo '</div>';
+	}
 }
 
 function tc_intro() {
@@ -179,8 +166,24 @@ function tc_form() {
 	echo '<form action="themes.php?page=themecheck" method="post">';
 	echo '<select name="themename">';
 
-	$selected_theme = isset( $_POST['themename'] ) ? wp_unslash( $_POST['themename'] ) : get_stylesheet();
-	foreach ( wp_get_themes() as $theme ) {
+	$themes         = wp_get_themes();
+	$selected_theme = get_stylesheet();
+	if ( isset( $_POST['themename'] ) ) {
+		$selected_theme = sanitize_text_field( wp_unslash( $_POST['themename'] ) );
+	} elseif ( isset( $_GET['themename'] ) ) {
+		// Pre-selection from the review queue hand-off; the check itself still requires the POST + nonce.
+		$candidate = sanitize_text_field( wp_unslash( $_GET['themename'] ) );
+		if ( isset( $themes[ $candidate ] ) ) {
+			$selected_theme = $candidate;
+		}
+	}
+	$queue_item = 0;
+	if ( isset( $_POST['queue_item'] ) ) {
+		$queue_item = absint( $_POST['queue_item'] );
+	} elseif ( isset( $_GET['queue_item'] ) ) {
+		$queue_item = absint( $_GET['queue_item'] );
+	}
+	foreach ( $themes as $theme ) {
 		printf(
 			'<option %s value="%s">%s</option>',
 			selected( $selected_theme, $theme['Stylesheet'], false ),
@@ -192,8 +195,8 @@ function tc_form() {
 	echo '</select>';
 
 	echo '<input class="button" type="submit" value="' . esc_attr__( 'Check it!', 'theme-check' ) . '" />';
-	if ( defined( 'TC_PRE' ) || defined( 'TC_POST' ) ) {
-		echo ' <input name="trac" type="checkbox" /> ' . esc_html__( 'Output in Trac format.', 'theme-check' );
+	if ( $queue_item ) {
+		echo '<input type="hidden" name="queue_item" value="' . esc_attr( $queue_item ) . '" />';
 	}
 	echo '<input name="s_info" type="checkbox" /> ' . esc_html__( 'Suppress INFO.', 'theme-check' );
 	wp_nonce_field( 'themecheck-nonce' );
