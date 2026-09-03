@@ -89,6 +89,7 @@
 		var max = parseInt( tpl.evidence_max_lines, 10 );
 		if ( isNaN( max ) ) { max = 5; }
 		var showFile = !! tpl.show_file_line;
+		var concise  = !! tpl.concise;
 		var groups = [];
 		ORDER.forEach( function ( sev ) {
 			var items = data.findings.filter( function ( f ) { return f.severity === sev && state.selected.has( f.id ); } );
@@ -97,17 +98,36 @@
 			var prevHadDetail = false;
 			items.forEach( function ( f, idx ) {
 				var detail = [];
-				if ( showFile ) {
-					if ( f.file ) { detail.push( '  File: ' + f.file ); }
-					( f.lines || [] ).slice( 0, max ).forEach( function ( l ) {
-						detail.push( '  Line ' + l.line + ': ' + l.text );
-					} );
-					if ( ( f.lines || [] ).length > max ) {
-						detail.push( '  ... and ' + ( f.lines.length - max ) + ' more' );
+				var fileLines = f.lines || [];
+				var head;
+				if ( concise ) {
+					// "file:line — what to change", then the code lines to review.
+					var lineNo = fileLines.length ? fileLines[ 0 ].line : ( f.line || 0 );
+					var where  = ( f.file && lineNo ) ? f.file + ':' + lineNo : '';
+					var what  = collapse( f.fix || f.short || f.text );
+					head = ( where ? where + ' — ' : '' ) + what;
+					if ( showFile ) {
+						fileLines.slice( 0, max ).forEach( function ( l ) {
+							detail.push( '    Line ' + l.line + ': ' + l.text );
+						} );
+						if ( fileLines.length > max ) {
+							detail.push( '    ... and ' + ( fileLines.length - max ) + ' more' );
+						}
+					}
+				} else {
+					head = collapse( f.text );
+					if ( showFile ) {
+						if ( f.file ) { detail.push( '  File: ' + f.file ); }
+						fileLines.slice( 0, max ).forEach( function ( l ) {
+							detail.push( '  Line ' + l.line + ': ' + l.text );
+						} );
+						if ( fileLines.length > max ) {
+							detail.push( '  ... and ' + ( fileLines.length - max ) + ' more' );
+						}
 					}
 				}
 				if ( idx > 0 && ( detail.length || prevHadDetail ) ) { lines.push( '' ); }
-				lines.push( '- ' + collapse( f.text ) );
+				lines.push( '- ' + head );
 				lines = lines.concat( detail );
 				prevHadDetail = detail.length > 0;
 			} );

@@ -175,11 +175,13 @@ function tc_render_message_panel( $theme, $findings, $author = '' ) {
 	}
 	echo '</p>';
 	printf(
-		'<p><label for="tc-tpl-evidence">%1$s</label> <input type="number" id="tc-tpl-evidence" min="0" max="20" data-tpl="evidence_max_lines" value="%2$d"> &nbsp; <label class="tc-inline"><input type="checkbox" data-tpl="show_file_line"%3$s> %4$s</label></p>',
+		'<p><label for="tc-tpl-evidence">%1$s</label> <input type="number" id="tc-tpl-evidence" min="0" max="20" data-tpl="evidence_max_lines" value="%2$d"> &nbsp; <label class="tc-inline"><input type="checkbox" data-tpl="show_file_line"%3$s> %4$s</label> &nbsp; <label class="tc-inline"><input type="checkbox" data-tpl="concise"%5$s> %6$s</label></p>',
 		esc_html__( 'Evidence lines per finding', 'theme-check' ),
 		(int) $tpl['evidence_max_lines'],
 		$tpl['show_file_line'] ? ' checked' : '',
-		esc_html__( 'Show file and line information', 'theme-check' )
+		esc_html__( 'Show file and line information', 'theme-check' ),
+		$tpl['concise'] ? ' checked' : '',
+		esc_html__( 'Concise findings (what to change + file:line)', 'theme-check' )
 	);
 	echo '<p><button type="button" class="button" id="tc-template-save">' . esc_html__( 'Save template', 'theme-check' ) . '</button> <button type="button" class="button" id="tc-template-reset">' . esc_html__( 'Reset to default', 'theme-check' ) . '</button> <span id="tc-template-status" role="status" aria-live="polite"></span></p>';
 	echo '<dl class="tc-placeholders">';
@@ -201,6 +203,8 @@ function tc_render_findings_json( $theme, $findings, $author = '' ) {
 			'label'    => $f['label'],
 			'check'    => $f['check'],
 			'text'     => $f['text'],
+			'short'    => isset( $f['short'] ) ? $f['short'] : $f['text'],
+			'fix'      => isset( $f['fix'] ) ? $f['fix'] : '',
 			'file'     => $f['file'],
 			'lines'    => $f['lines'],
 		);

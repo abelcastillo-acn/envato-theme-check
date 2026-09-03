@@ -24,6 +24,20 @@ class SQL_Prepare_Check implements themecheck {
 		'sql/prepare-variable-format' => 'warning',
 	);
 
+	/**
+	 * Short, author-facing "what to change" per rule (used by the plain-text message).
+	 */
+	const FIXES = array(
+		'sql/raw-driver'              => 'Remove the direct mysqli/PDO database access and use the $wpdb class with $wpdb->prepare().',
+		'sql/concat'                  => 'Build this query with $wpdb->prepare() and %d/%s placeholders instead of inserting variables into the SQL.',
+		'sql/esc-sql-concat'          => 'Replace esc_sql()/casts with $wpdb->prepare() placeholders; allow-list any dynamic column or table name.',
+		'sql/variable-arg'            => 'Make sure the SQL in this variable comes from $wpdb->prepare() and never contains unescaped values.',
+		'sql/variable-arg-concat'     => 'Build the SQL stored in this variable with $wpdb->prepare() placeholders instead of concatenation.',
+		'sql/prepare-no-placeholders' => 'Pass the values as %d/%s arguments to $wpdb->prepare(), or drop prepare() for a constant statement.',
+		'sql/prepare-interpolated'    => 'Move the interpolated variable out of the format string and pass it as a %d/%s argument to $wpdb->prepare().',
+		'sql/prepare-variable-format' => 'Do not concatenate variables into the prepare() format string; pass them as placeholder arguments.',
+	);
+
 	const DOCS   = 'https://developer.wordpress.org/reference/classes/wpdb/#protect-queries-against-sql-injection-attacks';
 	const ENVATO = 'https://help.author.envato.com/hc/en-us/articles/360000481243-WordPress-Theme-Requirements-Part-5-Theme-Security';
 
@@ -495,7 +509,7 @@ class SQL_Prepare_Check implements themecheck {
 
 	protected function add( $rule, $path, $line, $message, $vendor_downgrade = true ) {
 		$severity        = tc_rule_severity( $rule, self::RULES[ $rule ], $path, $vendor_downgrade );
-		$this->results[] = tc_error( $severity, $rule, $message, $path, $line, '', self::DOCS );
+		$this->results[] = tc_error( $severity, $rule, $message, $path, $line, '', self::DOCS, self::FIXES[ $rule ] );
 		if ( 'required' === $severity ) {
 			$this->failed = true;
 		}

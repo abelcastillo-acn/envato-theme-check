@@ -35,7 +35,15 @@ The results page SHALL show a "Message to author" panel with an editable plain-t
 - **THEN** the preview shows the text without tags, with `<br>` rendered as a line break and entities decoded
 
 ### Requirement: Findings SHALL be formatted with fixed plain-text rules
-Within the message, each severity present in the selection SHALL appear as an upper-case heading followed by the count in parentheses; each finding SHALL be a `- ` bullet with its text on one line (whitespace collapsed); when the finding has a file it SHALL be followed by an indented `File: <path>` line; up to N evidence lines (template setting, default 5) SHALL follow as indented `Line <n>: <excerpt>` lines, then `... and <k> more` when truncated. Groups SHALL be separated by one blank line; empty groups SHALL be omitted; line endings SHALL be `\n`.
+Within the message, each severity present in the selection SHALL appear as an upper-case heading followed by the count in parentheses. In **concise mode** (template default) each finding SHALL be a `- ` bullet of the form `<file>:<line> — <what to change>` where "what to change" is the finding's author-facing fix instruction when the check provides one, otherwise the finding text with reviewer boilerplate removed ("A manual review is needed", "ThemeForest requirement: …", "Learn more"); up to N code lines (template setting, default 3) SHALL follow as `    Line <n>: <excerpt>`, then `    ... and <k> more` when truncated. In **detailed mode** each finding SHALL be a `- ` bullet with its full text on one line, followed by an indented `File: <path>` line and up to N `  Line <n>: <excerpt>` lines. Groups SHALL be separated by one blank line; empty groups SHALL be omitted; line endings SHALL be `\n`.
+
+#### Scenario: Concise finding with a fix instruction
+- **WHEN** a `sql/concat` finding for `inc/views.php` line 42 is selected in concise mode
+- **THEN** the message contains `- inc/views.php:42 — Build this query with $wpdb->prepare() and %d/%s placeholders instead of inserting variables into the SQL.` followed by `    Line 42: <excerpt>`
+
+#### Scenario: Concise legacy finding
+- **WHEN** a legacy finding whose text ends with "A manual review is needed." is selected in concise mode
+- **THEN** the bullet uses the text without that sentence
 
 #### Scenario: Finding with seven evidence lines
 - **WHEN** a selected finding has 7 excerpts and the template limit is 5

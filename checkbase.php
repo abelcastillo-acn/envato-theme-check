@@ -141,9 +141,10 @@ function run_themechecks( $php, $css, $other, $context = array() ) {
  * @param int    $line     Line number (0 if n/a).
  * @param string $evidence Pre-rendered <pre class='tc-grep'> block(s); built from $file/$line when empty.
  * @param string $docs_url Optional "Learn more" URL.
+ * @param string $fix      Optional one-sentence, author-facing instruction ("what to change"), plain text.
  * @return array
  */
-function tc_error( $severity, $check_id, $message, $file = '', $line = 0, $evidence = '', $docs_url = '' ) {
+function tc_error( $severity, $check_id, $message, $file = '', $line = 0, $evidence = '', $docs_url = '', $fix = '' ) {
 	$labels = array(
 		'required'    => __( 'REQUIRED', 'theme-check' ),
 		'warning'     => __( 'WARNING', 'theme-check' ),
@@ -172,7 +173,20 @@ function tc_error( $severity, $check_id, $message, $file = '', $line = 0, $evide
 		'line'     => (int) $line,
 		'evidence' => $evidence,
 		'html'     => $html,
+		'fix'      => tc_finding_plain_text( $fix ),
 	);
+}
+
+/**
+ * Shorter, author-facing version of a finding text: drops reviewer boilerplate
+ * ("A manual review is needed.", "ThemeForest requirement: ...", "Learn more").
+ */
+function tc_finding_short_text( $text ) {
+	$text = preg_replace( '/\s*ThemeForest requirement:.*$/su', '', (string) $text );
+	$text = preg_replace( '/\s*A manual review is needed\.?/i', '', $text );
+	$text = preg_replace( '/\s*Learn more\.?$/i', '', $text );
+	$text = preg_replace( '/\s+/', ' ', $text );
+	return trim( $text );
 }
 
 /**
@@ -308,6 +322,8 @@ function tc_collect_findings() {
 		$r['severity'] = $sev;
 		$r['label']    = $labels[ $sev ];
 		$r['text']     = $text;
+		$r['short']    = tc_finding_short_text( $text );
+		$r['fix']      = isset( $r['fix'] ) ? (string) $r['fix'] : '';
 		$r['lines']    = $lines;
 		$r['id']       = 'tc-' . substr( md5( $r['check'] . '|' . $r['html'] ), 0, 10 );
 		$out[]         = $r;
@@ -320,6 +336,14 @@ function tc_collect_findings() {
 				return $d;
 			}
 			$d = strcmp( $a['check'], $b['check'] );
+			if ( 0 !== $d ) {
+				return $d;
+			}
+			$d = strcmp( $a['file'], $b['file'] );
+			if ( 0 !== $d ) {
+				return $d;
+			}
+			$d = (int) $a['line'] - (int) $b['line'];
 			return ( 0 !== $d ) ? $d : strcmp( $a['text'], $b['text'] );
 		}
 	);

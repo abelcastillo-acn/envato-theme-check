@@ -19,6 +19,15 @@ class Superglobals_Sanitization_Check implements themecheck {
 		'superglobals/extract'     => 'required',
 	);
 
+	/**
+	 * Short, author-facing "what to change" per rule (used by the plain-text message).
+	 */
+	const FIXES = array(
+		'superglobals/unsanitized' => 'Sanitize or validate each request value where it is read, e.g. sanitize_text_field( wp_unslash( $_POST[\'field\'] ) ), absint( $_GET[\'id\'] ) or an in_array() allow-list; wp_unslash()/trim() alone are not enough.',
+		'superglobals/whole-array' => 'Do not use the whole $_POST/$_GET array; read the specific keys you need and sanitize each one.',
+		'superglobals/extract'     => 'Remove extract() on request data; read and sanitize each key explicitly.',
+	);
+
 	const DOCS   = 'https://developer.wordpress.org/apis/security/sanitizing/';
 	const ENVATO = 'https://help.author.envato.com/hc/en-us/articles/360000481243-WordPress-Theme-Requirements-Part-5-Theme-Security';
 	const MAX_EXCERPTS = 8;
@@ -274,7 +283,7 @@ class Superglobals_Sanitization_Check implements themecheck {
 
 		$first_line = key( $hits );
 		$severity   = tc_rule_severity( $rule, self::RULES[ $rule ], $path, true );
-		$this->results[] = tc_error( $severity, $rule, $message, $path, $first_line, $evidence, self::DOCS );
+		$this->results[] = tc_error( $severity, $rule, $message, $path, $first_line, $evidence, self::DOCS, self::FIXES[ $rule ] );
 		if ( 'required' === $severity ) {
 			$this->failed = true;
 		}
@@ -291,7 +300,7 @@ class Superglobals_Sanitization_Check implements themecheck {
 
 	protected function add( $rule, $path, $line, $message, $vendor_downgrade = true ) {
 		$severity        = tc_rule_severity( $rule, self::RULES[ $rule ], $path, $vendor_downgrade );
-		$this->results[] = tc_error( $severity, $rule, $message, $path, $line, '', self::DOCS );
+		$this->results[] = tc_error( $severity, $rule, $message, $path, $line, '', self::DOCS, self::FIXES[ $rule ] );
 		if ( 'required' === $severity ) {
 			$this->failed = true;
 		}

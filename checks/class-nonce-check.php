@@ -23,6 +23,18 @@ class Nonce_Check implements themecheck {
 		'nonce/unresolved'           => 'info',
 	);
 
+	/**
+	 * Short, author-facing "what to change" per rule (used by the plain-text message).
+	 */
+	const FIXES = array(
+		'nonce/ajax-missing'        => 'Verify a nonce at the start of this handler (check_ajax_referer() for AJAX, check_admin_referer() for admin-post) and send it from JavaScript with wp_create_nonce().',
+		'nonce/nopriv-state-change' => 'This public endpoint changes data: verify a nonce with check_ajax_referer() and validate every input before writing.',
+		'nonce/form-handler'        => 'Verify a nonce (check_admin_referer()/wp_verify_nonce()) before using the submitted data to modify anything, and output it with wp_nonce_field().',
+		'nonce/capability-missing'  => 'Check the user capability (e.g. current_user_can( \'manage_options\' )) before this handler modifies data.',
+		'nonce/delegated'           => 'Confirm that the helper this handler calls actually verifies the nonce (check_ajax_referer()/check_admin_referer()/wp_verify_nonce()).',
+		'nonce/unresolved'          => 'Make sure every dynamically registered AJAX/admin-post handler verifies a nonce and checks capabilities.',
+	);
+
 	const DOCS   = 'https://developer.wordpress.org/apis/security/nonces/';
 	const CAPS   = 'https://developer.wordpress.org/apis/security/user-roles-and-capabilities/';
 	const ENVATO = 'https://help.author.envato.com/hc/en-us/articles/360000481243-WordPress-Theme-Requirements-Part-5-Theme-Security';
@@ -494,7 +506,7 @@ class Nonce_Check implements themecheck {
 
 	protected function add( $rule, $path, $line, $message, $docs ) {
 		$severity        = tc_rule_severity( $rule, self::RULES[ $rule ], $path, true );
-		$this->results[] = tc_error( $severity, $rule, $message, $path, $line, '', $docs );
+		$this->results[] = tc_error( $severity, $rule, $message, $path, $line, '', $docs, self::FIXES[ $rule ] );
 		if ( 'required' === $severity ) {
 			$this->failed = true;
 		}

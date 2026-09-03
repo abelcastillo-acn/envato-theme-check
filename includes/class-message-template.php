@@ -20,13 +20,14 @@ if ( ! class_exists( 'ETC_Message_Template' ) ) {
 		public static function defaults() {
 			return array(
 				'greeting'           => 'Hi {author},',
-				'intro'              => 'Thanks for submitting {theme_name} {theme_version} to ThemeForest. Our automated review found the following issues that need to be addressed before the item can be approved:',
+				'intro'              => 'Thanks for submitting {theme_name} {theme_version}. Before we can approve it, please fix the items below. Each item shows what to change and the file and line to review:',
 				'notes_heading'      => 'Reviewer notes:',
-				'footer'             => "Once these are resolved, please resubmit and we will take another look. Thanks for your patience.\n\nThe ThemeForest Review Team",
+				'footer'             => "Once these are fixed, please resubmit and we'll take another look.\n\nThe ThemeForest Review Team",
 				'default_included'   => array( 'required', 'warning', 'recommended' ),
-				'evidence_max_lines' => 5,
+				'evidence_max_lines' => 3,
 				'show_file_line'     => true,
-				'version'            => 1,
+				'concise'            => true,
+				'version'            => 2,
 			);
 		}
 
@@ -60,7 +61,8 @@ if ( ! class_exists( 'ETC_Message_Template' ) ) {
 			$out['default_included'] = array_values( array_intersect( $sevs, array_map( 'strtolower', array_map( 'strval', $inc ) ) ) );
 			$out['evidence_max_lines'] = isset( $data['evidence_max_lines'] ) ? max( 0, min( 20, absint( $data['evidence_max_lines'] ) ) ) : $defaults['evidence_max_lines'];
 			$out['show_file_line']     = isset( $data['show_file_line'] ) ? rest_sanitize_boolean( $data['show_file_line'] ) : $defaults['show_file_line'];
-			$out['version']            = 1;
+			$out['concise']            = isset( $data['concise'] ) ? rest_sanitize_boolean( $data['concise'] ) : $defaults['concise'];
+			$out['version']            = 2;
 			return $out;
 		}
 

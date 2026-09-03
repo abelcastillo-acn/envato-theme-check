@@ -7,19 +7,20 @@ Let reviewers keep a consistent, editable message template (greeting, intro, not
 ### Requirement: A default template SHALL be provided
 When no template has been saved, the plugin SHALL use these defaults:
 - greeting: `Hi {author},`
-- intro: `Thanks for submitting {theme_name} {theme_version} to ThemeForest. Our automated review found the following issues that need to be addressed before the item can be approved:`
+- intro: `Thanks for submitting {theme_name} {theme_version}. Before we can approve it, please fix the items below. Each item shows what to change and the file and line to review:`
 - notes heading: `Reviewer notes:`
-- footer: `Once these are resolved, please resubmit and we will take another look. Thanks for your patience.` followed by a blank line and `The ThemeForest Review Team`
+- footer: `Once these are fixed, please resubmit and we'll take another look.` followed by a blank line and `The ThemeForest Review Team`
 - default included severities: REQUIRED, WARNING, RECOMMENDED
-- evidence lines per finding: 5
+- evidence lines per finding: 3
 - show file and line information: yes
+- concise findings (what to change + file:line): yes
 
 #### Scenario: Fresh install
 - **WHEN** the results page loads on a site where the template option does not exist
 - **THEN** the message preview uses the defaults above
 
 ### Requirement: The template SHALL be editable from the results page
-The message panel SHALL contain an "Edit template" section with fields for greeting, intro, notes heading, footer, default included severities, evidence lines per finding and the show-file-line toggle, plus "Save template" and "Reset to default" actions; the assembly order (greeting, intro, findings, notes, footer) SHALL be fixed.
+The message panel SHALL contain an "Edit template" section with fields for greeting, intro, notes heading, footer, default included severities, evidence lines per finding, the show-file-line toggle and the concise-findings toggle, plus "Save template" and "Reset to default" actions; the assembly order (greeting, intro, findings, notes, footer) SHALL be fixed.
 
 #### Scenario: Save a custom footer
 - **WHEN** the reviewer changes the footer and clicks "Save template"
