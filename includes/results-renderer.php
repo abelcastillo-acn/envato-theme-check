@@ -128,6 +128,7 @@ function tc_render_finding( $f, $checked ) {
 		$checked ? ' checked' : '',
 		esc_html__( 'Include this finding in the message', 'theme-check' )
 	);
+	echo '<div class="tc-item-body">';
 	printf( '<span class="tc-lead tc-%1$s">%2$s</span>: ', esc_attr( $f['severity'] ), esc_html( $f['label'] ) );
 	printf( '<span class="tc-msg" id="tc-msg-%1$s">%2$s</span>', esc_attr( $id ), wp_kses( tc_finding_body_html( $f ), $allow ) );
 	if ( ! empty( $f['lines'] ) ) {
@@ -137,7 +138,7 @@ function tc_render_finding( $f, $checked ) {
 		echo wp_kses( $f['evidence'], $allow );
 		echo '</details>';
 	}
-	echo '</li>';
+	echo '</div></li>';
 }
 
 function tc_render_message_panel( $theme, $findings, $author = '' ) {

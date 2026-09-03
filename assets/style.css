@@ -155,10 +155,11 @@ form {
 	padding:0;
 	list-style:none;
 }
-.tc-item {
-	display:grid;
-	grid-template-columns:auto minmax(0, 1fr);
-	column-gap:8px;
+.theme-check .tc-item {
+	display:flex;
+	align-items:flex-start;
+	gap:8px;
+	margin:0;
 	padding:10px 12px;
 	border-bottom:1px solid #f0f0f1;
 	line-height:1.6;
@@ -166,18 +167,22 @@ form {
 .tc-item:last-child {
 	border-bottom:0;
 }
-.tc-item .tc-item-check {
-	margin-top:4px;
-	grid-row:1 / span 2;
+.theme-check .tc-item .tc-item-check {
+	flex:0 0 auto;
+	margin:4px 0 0;
+}
+.tc-item .tc-item-body {
+	flex:1 1 auto;
+	min-width:0;
 }
 .tc-item .tc-lead {
 	margin-right:2px;
+	white-space:nowrap;
 }
 .tc-item .tc-msg {
 	overflow-wrap:anywhere;
 }
 .tc-item .tc-evidence {
-	grid-column:2;
 	margin-top:4px;
 }
 .tc-item .tc-evidence summary,
