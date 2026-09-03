@@ -1,0 +1,43 @@
+schema: spec-driven
+
+# Project context shown to AI when creating artifacts.
+context: |
+  Project: Envato Theme Check — a WordPress plugin (PHP) used by ThemeForest reviewers to
+  run automated checks against WordPress themes. Fork of Theme Check by Otto42 with
+  Envato-specific rules. Repo: github.com/envato/envato-theme-check (working fork:
+  abelcastillo-acn/envato-theme-check).
+
+  Tech stack: PHP 7.0+ style (array(), no typed properties), WordPress plugin APIs
+  (admin pages, wp_kses, WP-CLI via theme-check-cli.php). No Composer, no PHPUnit, no CI.
+  Tested locally on Local by WP Engine (WordPress 7.1, PHP 8.2) with WP-CLI available
+  in the site shell.
+
+  Architecture: every check is a class in checks/class-*-check.php implementing the
+  `themecheck` interface (check($php_files,$css_files,$other_files): bool, getError(): string[]).
+  Checks auto-load via glob in checkbase.php. Error strings are pre-rendered HTML:
+  '<span class="tc-lead tc-{required|warning|recommended|info}">LABEL</span>: message <pre class="tc-grep">Line N: ...</pre>'.
+  Only REQUIRED findings may make check() return false. Output is filtered by wp_kses
+  (allowed: li, span[class], strong, code, pre, a[href]). PHP content passed to checks is
+  comment-stripped (tc_strip_comments, line numbers preserved). Helpers: tc_preg(), tc_grep(),
+  tc_filename(). No JavaScript exists in the plugin today.
+
+  Authoritative requirements: Envato "WordPress Theme Requirements Part 5 - Theme Security"
+  (https://help.author.envato.com/hc/en-us/articles/360000481243), WordPress.org Theme Review
+  Handbook (Required), WordPress Coding Standards (WPCS). Language for all artifacts: English.
+
+  Conventions: WordPress Coding Standards for PHP; i18n text domain 'theme-check';
+  every finding must state the requirement source and give the author an actionable fix.
+
+rules:
+  proposal:
+    - Include a "Requirement source" subsection citing Envato/WP.org/WPCS with must/should wording
+    - Include explicit "Out of scope" list
+  specs:
+    - Every requirement SHALL distinguish "Policy severity" (per Envato requirement) from "Detection severity v1" (what the check emits)
+    - Every requirement needs at least one positive scenario and one "does not fire" scenario
+  design:
+    - Reference concrete file paths and existing helper functions in the plugin
+    - Include an "Author impact" section (prevalence, effort, before/after snippet, false-positive risk, reviewer guidance) when the change adds checks
+  tasks:
+    - Every task names the file(s) it touches
+    - Include verification tasks runnable in the Local site shell (wp-cli)
